@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+# Managed by AIPM Ops Bootstrap
+set -euo pipefail
+
+msg_file="${1:-}"
+if [[ -z "$msg_file" || ! -f "$msg_file" ]]; then
+  echo "commit-msg hook: message file is missing"
+  exit 1
+fi
+
+subject="$(head -n 1 "$msg_file")"
+if [[ "$subject" =~ ^Merge[[:space:]] || "$subject" =~ ^Revert[[:space:]] ]]; then
+  exit 0
+fi
+
+if [[ ! "$subject" =~ \[[A-Z][A-Z0-9_-]*-[0-9]+\] ]]; then
+  cat <<'MSG'
+Invalid commit message subject.
+Expected subject to include issue key token, e.g.:
+  [AIPM-42] feat(repo): add automation bootstrap
+MSG
+  echo "Received: $subject"
+  exit 1
+fi
+
+if ! grep -Eiq '(Refs|Closes|Fixes)[[:space:]]*#[0-9]+' "$msg_file"; then
+  cat <<'MSG'
+Invalid commit message body.
+Expected one of the following references:
+  Refs #<n>
+  Closes #<n>
+  Fixes #<n>
+MSG
+  exit 1
+fi
