@@ -1,0 +1,73 @@
+name: AI Agent Dispatch
+
+on:
+  issues:
+    types: [labeled]
+  issue_comment:
+    types: [created]
+
+jobs:
+  dispatch-claude:
+    if: |
+      (github.event_name == 'issues' && github.event.label.name == 'agent:claude') ||
+      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@ai-agent claude'))
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Run Claude Code
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          model: "claude-sonnet-4-20250514"
+          max_turns: 25
+
+  dispatch-codex:
+    if: |
+      (github.event_name == 'issues' && github.event.label.name == 'agent:codex') ||
+      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@ai-agent codex'))
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Run Codex
+        uses: openai/codex-action@v1
+        with:
+          openai_api_key: ${{ secrets.OPENAI_API_KEY }}
+
+  dispatch-auto:
+    if: |
+      (github.event_name == 'issues' && github.event.label.name == 'agent:auto') ||
+      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@ai-agent'))
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      # Default backend: Claude (configurable via repo variable)
+      - name: Run default agent
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          model: ${{ vars.AI_AGENT_DEFAULT_MODEL || 'claude-sonnet-4-20250514' }}
+          max_turns: 25

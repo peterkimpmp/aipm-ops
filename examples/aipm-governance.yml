@@ -1,0 +1,133 @@
+name: AIPM Governance Check
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  commit-governance:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate commit issue linkage
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
+            RANGE="${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}"
+          else
+            BEFORE="${{ github.event.before }}"
+            if [[ "$BEFORE" == "0000000000000000000000000000000000000000" ]]; then
+              ROOT_COMMIT="$(git rev-list --max-parents=0 HEAD | tail -n 1)"
+              RANGE="$ROOT_COMMIT..${GITHUB_SHA}"
+            else
+              RANGE="$BEFORE..${GITHUB_SHA}"
+            fi
+          fi
+
+          mapfile -t COMMITS < <(git rev-list "$RANGE")
+          if [[ "${#COMMITS[@]}" -eq 0 ]]; then
+            mapfile -t COMMITS < <(git rev-list -1 HEAD)
+          fi
+
+          ISSUE_KEY_PATTERN='\[[A-Z][A-Z0-9_-]*-[0-9]+\]'
+          ISSUE_LINK_PATTERN='(Refs|Closes|Fixes)[[:space:]]*#[0-9]+'
+
+          for COMMIT in "${COMMITS[@]}"; do
+            SUBJECT="$(git log -1 --format=%s "$COMMIT")"
+            BODY="$(git log -1 --format=%B "$COMMIT")"
+
+            if [[ "$SUBJECT" =~ ^Merge[[:space:]] || "$SUBJECT" =~ ^Revert[[:space:]] ]]; then
+              continue
+            fi
+
+            if [[ ! "$SUBJECT" =~ $ISSUE_KEY_PATTERN ]]; then
+              echo "Missing issue key in commit subject: $SUBJECT"
+              exit 1
+            fi
+
+            if ! grep -Eiq "$ISSUE_LINK_PATTERN" <<<"$BODY"; then
+              echo "Missing issue link keyword in commit: $SUBJECT"
+              echo "Expected: Refs #n or Closes #n or Fixes #n"
+              exit 1
+            fi
+          done
+
+  pr-governance:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      issues: read
+      pull-requests: read
+    steps:
+      - name: Validate PR issue linkage
+        shell: bash
+        run: |
+          set -euo pipefail
+          TEXT="${{ github.event.pull_request.title }}\n${{ github.event.pull_request.body }}"
+          if ! grep -Eiq '(Refs|Closes|Fixes)[[:space:]]*#[0-9]+' <<<"$TEXT"; then
+            echo "PR must include issue link keyword: Refs #n or Closes #n or Fixes #n"
+            exit 1
+          fi
+
+      - name: Validate referenced issue logs
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const text = `${pr.title}\n${pr.body || ""}`;
+            const refs = [...text.matchAll(/(?:Refs|Closes|Fixes)\s+#(\d+)/gi)]
+              .map((m) => Number(m[1]));
+            const issueNumbers = [...new Set(refs)].filter((n) => Number.isInteger(n));
+
+            if (issueNumbers.length === 0) {
+              core.setFailed("PR must reference at least one issue via Refs/Closes/Fixes #<n>.");
+              return;
+            }
+
+            const failures = [];
+            for (const issue_number of issueNumbers) {
+              const comments = await github.paginate(github.rest.issues.listComments, {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number,
+                per_page: 100,
+              });
+
+              const phases = new Set();
+              for (const comment of comments) {
+                const body = comment.body || "";
+                for (const match of body.matchAll(/^###\s*([A-Z]+)\b/gim)) {
+                  phases.add(match[1].toUpperCase());
+                }
+              }
+
+              const hasStart = phases.has("START");
+              const hasPlanning = phases.has("PLAN") || phases.has("PRD") || phases.has("PROGRESS");
+              const hasResult = phases.has("RESULT") || phases.has("END");
+
+              if (!hasStart || !hasPlanning || !hasResult) {
+                const missing = [];
+                if (!hasStart) missing.push("START");
+                if (!hasPlanning) missing.push("PLAN/PRD/PROGRESS");
+                if (!hasResult) missing.push("RESULT/END");
+                failures.push(`#${issue_number} missing ${missing.join(", ")}`);
+              }
+            }
+
+            if (failures.length > 0) {
+              core.setFailed(
+                "Referenced issue logs are incomplete. " +
+                "Required phases: START + (PLAN|PRD|PROGRESS) + (RESULT|END).\n" +
+                failures.join("\n")
+              );
+              return;
+            }
+
+            core.info(`Referenced issues passed log checks: ${issueNumbers.join(", ")}`);

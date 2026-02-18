@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+# Managed by AIPM Ops Bootstrap
+set -euo pipefail
+
+msg_file="${1:-}"
+commit_source="${2:-}"
+
+if [[ -z "$msg_file" || ! -f "$msg_file" ]]; then
+  exit 0
+fi
+
+if [[ "$commit_source" == "merge" || "$commit_source" == "squash" ]]; then
+  exit 0
+fi
+
+subject="$(head -n 1 "$msg_file")"
+if [[ "$subject" =~ ^\[[A-Z][A-Z0-9_-]*-[0-9]+\][[:space:]] ]]; then
+  exit 0
+fi
+
+repo_root="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+issue_key_prefix="__ISSUE_KEY_PREFIX__"
+if [[ -f "$repo_root/.aipm/ops.env" ]]; then
+  # shellcheck disable=SC1091
+  source "$repo_root/.aipm/ops.env"
+fi
+issue_key_prefix="${ISSUE_KEY_PREFIX:-$issue_key_prefix}"
+
+issue_number="${AIPM_ISSUE:-}"
+if [[ -z "$issue_number" ]]; then
+  branch="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
+  if [[ "$branch" =~ ([0-9]{1,6}) ]]; then
+    issue_number="${BASH_REMATCH[1]}"
+  fi
+fi
+
+if [[ -z "$issue_number" ]]; then
+  exit 0
+fi
+
+new_subject="[${issue_key_prefix}-${issue_number}] ${subject}"
+
+tmp_file="${msg_file}.tmp"
+{
+  echo "$new_subject"
+  tail -n +2 "$msg_file"
+} >"$tmp_file"
+mv "$tmp_file" "$msg_file"
