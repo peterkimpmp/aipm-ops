@@ -19,7 +19,7 @@ if [[ "$subject" =~ ^\[[A-Z][A-Z0-9_-]*-[0-9]+\][[:space:]] ]]; then
 fi
 
 repo_root="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
-issue_key_prefix="AOPS"
+issue_key_prefix="AIPMOPS"
 if [[ -f "$repo_root/.aipm/ops.env" ]]; then
   # shellcheck disable=SC1091
   source "$repo_root/.aipm/ops.env"

@@ -11,11 +11,11 @@ Auto-detect the current phase from context and execute the next step.
 - Without `[PM]` — Execute directly, no issue tracking.
 
 ### Commit Format
-- Subject: `[AOPS-<n>] <type>(<scope>): <summary>`
+- Subject: `[AIPMOPS-<n>] <type>(<scope>): <summary>`
 - Body: `Refs #<n>` or `Closes #<n>` or `Fixes #<n>`
 
 ### Branch Naming
-- `<type>/<AOPS>-<n>-<slug>`
+- `<type>/<AIPMOPS>-<n>-<slug>`
 
 ### Quick Commands
 - `./scripts/setup-labels.sh`
