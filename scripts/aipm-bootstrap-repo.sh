@@ -92,7 +92,7 @@ infer_existing_prefix() {
     hint="${hint#[}"
     hint="${hint%%-*}"
     case "$hint" in
-      ISSUE|TASK|EPIC|RESEARCH|FEATURE|BUG|CHORE|DOCS)
+      ISSUE|TASK|EPIC|RESEARCH|FEATURE|BUG|CHORE|DOCS|PREFIX|EXAMPLE|SAMPLE|PLACEHOLDER)
         hint=""
         ;;
     esac
