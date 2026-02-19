@@ -1,0 +1,62 @@
+name: "User Story"
+description: "사용자 관점의 요구사항 단위 (1 스프린트 이내)"
+title: "[Story] As a "
+labels: ["type:story", "status:todo"]
+body:
+  - type: textarea
+    id: user_story
+    attributes:
+      label: "User Story"
+      placeholder: "As a [사용자 유형], I want [수행하고 싶은 것] so that [달성하려는 목적]."
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance_criteria
+    attributes:
+      label: "완료 기준 (Given-When-Then)"
+      placeholder: |
+        **시나리오 1: 정상 케이스**
+        - Given: [사전 조건]
+        - When: [사용자 행동]
+        - Then: [기대 결과]
+
+        **시나리오 2: 예외 케이스**
+        - Given:
+        - When:
+        - Then:
+    validations:
+      required: true
+
+  - type: textarea
+    id: tasks
+    attributes:
+      label: "세부 Task"
+      placeholder: |
+        - [ ] BE: ...
+        - [ ] FE: ...
+        - [ ] TEST: ...
+
+  - type: dropdown
+    id: story_points
+    attributes:
+      label: "스토리 포인트"
+      options: ["1", "2", "3", "5", "8", "13"]
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: "우선순위"
+      options:
+        - "P0 - Critical"
+        - "P1 - High"
+        - "P2 - Medium"
+        - "P3 - Low"
+    validations:
+      required: true
+
+  - type: input
+    id: feature_link
+    attributes:
+      label: "상위 Feature"
+      placeholder: "#이슈번호"
