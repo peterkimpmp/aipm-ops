@@ -1,0 +1,79 @@
+name: "Epic"
+description: "대형 기능 묶음 — 여러 Feature/Story로 구성 (수 주~수 개월)"
+title: "[Epic] "
+labels: ["type:epic", "status:todo"]
+body:
+  - type: textarea
+    id: goal
+    attributes:
+      label: "비즈니스 목표"
+      description: "이 Epic이 해결하는 문제 또는 기회. 어떤 비즈니스 가치를 창출하는가?"
+      placeholder: "현재 X 문제로 인해 Y가 발생. 이 Epic으로 Z 달성."
+    validations:
+      required: true
+
+  - type: textarea
+    id: scope
+    attributes:
+      label: "범위 (Scope)"
+      placeholder: |
+        **포함:**
+        - ...
+
+        **미포함 (다음 버전):**
+        - ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance_criteria
+    attributes:
+      label: "완료 기준 (Acceptance Criteria)"
+      placeholder: |
+        - [ ] 기준 1
+        - [ ] 기준 2
+    validations:
+      required: true
+
+  - type: textarea
+    id: child_issues
+    attributes:
+      label: "구성 Feature/Story"
+      description: "하위 이슈를 생성 후 Sub-issue로 연결하거나 Tasklist로 기록"
+      placeholder: |
+        - [ ] Feature: ...
+        - [ ] Feature: ...
+
+  - type: textarea
+    id: kpi
+    attributes:
+      label: "성공 지표 (KPI)"
+      placeholder: |
+        - 전환율 +20%
+        - 응답 속도 < 200ms (p95)
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: "우선순위"
+      options:
+        - "P0 - Critical"
+        - "P1 - High"
+        - "P2 - Medium"
+        - "P3 - Low"
+    validations:
+      required: true
+
+  - type: input
+    id: milestone
+    attributes:
+      label: "목표 Milestone / 분기"
+      placeholder: "예: Q2 2026, v2.0"
+
+  - type: textarea
+    id: references
+    attributes:
+      label: "참고 자료"
+      placeholder: |
+        - 상위 Initiative: #번호
+        - BRD / Notion 링크
