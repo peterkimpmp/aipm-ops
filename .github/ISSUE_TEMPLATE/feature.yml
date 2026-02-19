@@ -1,0 +1,86 @@
+name: "Feature / PRD"
+description: "단일 기능 단위 — Epic 하위, PRD 역할 겸용 (1~3 스프린트)"
+title: "[Feature] "
+labels: ["type:feature", "status:todo"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: "문제 정의"
+      placeholder: "현재 사용자는 X를 할 수 없어서 Y라는 문제를 겪는다."
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: "제안 해결책"
+      description: "기능의 핵심 동작 방식"
+    validations:
+      required: true
+
+  - type: textarea
+    id: requirements
+    attributes:
+      label: "기능 요구사항"
+      placeholder: |
+        | ID | 요구사항 | 우선순위 |
+        |----|----------|----------|
+        | FR-01 | ... | Must |
+        | FR-02 | ... | Should |
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance_criteria
+    attributes:
+      label: "완료 기준 (Given-When-Then)"
+      placeholder: |
+        **시나리오 1: 정상 케이스**
+        - Given: ...
+        - When: ...
+        - Then: ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: non_functional
+    attributes:
+      label: "비기능 요구사항"
+      placeholder: |
+        - 응답 시간 < 2초 (p95)
+        - 모바일 지원
+
+  - type: textarea
+    id: user_stories
+    attributes:
+      label: "관련 User Story"
+      placeholder: |
+        - [ ] Story: ...
+        - [ ] Story: ...
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: "우선순위"
+      options:
+        - "P0 - Critical"
+        - "P1 - High"
+        - "P2 - Medium"
+        - "P3 - Low"
+    validations:
+      required: true
+
+  - type: input
+    id: epic_link
+    attributes:
+      label: "상위 Epic"
+      placeholder: "#이슈번호"
+
+  - type: textarea
+    id: references
+    attributes:
+      label: "참고 자료"
+      placeholder: |
+        - Figma 링크
+        - PRD / Notion 링크
