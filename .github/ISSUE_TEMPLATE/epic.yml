@@ -1,79 +1,63 @@
 name: "Epic"
-description: "대형 기능 묶음 — 여러 Feature/Story로 구성 (수 주~수 개월)"
+description: "Large feature bundle — composed of multiple Features/Stories (weeks to months)"
 title: "[Epic] "
 labels: ["type:epic", "status:todo"]
 body:
   - type: textarea
     id: goal
     attributes:
-      label: "비즈니스 목표"
-      description: "이 Epic이 해결하는 문제 또는 기회. 어떤 비즈니스 가치를 창출하는가?"
-      placeholder: "현재 X 문제로 인해 Y가 발생. 이 Epic으로 Z 달성."
+      label: "Business Goal"
+      description: "The problem or opportunity this Epic addresses. What business value does it create?"
+      placeholder: "Due to problem X, Y is occurring. By solving this, we expect Z outcome."
     validations:
       required: true
 
   - type: textarea
     id: scope
     attributes:
-      label: "범위 (Scope)"
+      label: "Scope"
+      description: "What is included / excluded"
       placeholder: |
-        **포함:**
-        - ...
+        **In scope:**
+        - 
 
-        **미포함 (다음 버전):**
-        - ...
+        **Out of scope:**
+        - 
     validations:
       required: true
-
-  - type: textarea
-    id: acceptance_criteria
-    attributes:
-      label: "완료 기준 (Acceptance Criteria)"
-      placeholder: |
-        - [ ] 기준 1
-        - [ ] 기준 2
-    validations:
-      required: true
-
-  - type: textarea
-    id: child_issues
-    attributes:
-      label: "구성 Feature/Story"
-      description: "하위 이슈를 생성 후 Sub-issue로 연결하거나 Tasklist로 기록"
-      placeholder: |
-        - [ ] Feature: ...
-        - [ ] Feature: ...
 
   - type: textarea
     id: kpi
     attributes:
-      label: "성공 지표 (KPI)"
+      label: "KPI / Success Metrics"
       placeholder: |
-        - 전환율 +20%
-        - 응답 속도 < 200ms (p95)
+        - Metric 1: current X → target Y
+        - Metric 2: …
+
+  - type: textarea
+    id: features
+    attributes:
+      label: "Sub-Features"
+      description: "List of child Feature issues"
+      placeholder: |
+        - [ ] #issue — Feature name
+        - [ ] #issue — Feature name
+
+  - type: textarea
+    id: done
+    attributes:
+      label: "Definition of Done"
+      placeholder: |
+        - [ ] All sub-Features closed
+        - [ ] KPIs verified
+        - [ ] Docs updated
+    validations:
+      required: true
 
   - type: dropdown
     id: priority
     attributes:
-      label: "우선순위"
-      options:
-        - "P0 - Critical"
-        - "P1 - High"
-        - "P2 - Medium"
-        - "P3 - Low"
+      label: "Priority"
+      options: ["p0 - Critical", "p1 - High", "p2 - Medium", "p3 - Low"]
     validations:
       required: true
-
-  - type: input
-    id: milestone
-    attributes:
-      label: "목표 Milestone / 분기"
-      placeholder: "예: Q2 2026, v2.0"
-
-  - type: textarea
-    id: references
-    attributes:
-      label: "참고 자료"
-      placeholder: |
-        - 상위 Initiative: #번호
-        - BRD / Notion 링크
