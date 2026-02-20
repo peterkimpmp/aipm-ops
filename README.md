@@ -41,16 +41,20 @@ This installs:
 | Component | Description |
 |-----------|-------------|
 | `scripts/issue-log.sh` | Post lifecycle logs (START/PROGRESS/RESULT) to GitHub Issues |
-| `scripts/setup-labels.sh` | Create label taxonomy (type, status, priority, agent) |
+| `scripts/setup-labels.sh` | Create 4-axis label taxonomy (type/status/priority/area/agent) |
 | `.githooks/commit-msg` | Block commits without issue key |
 | `.githooks/prepare-commit-msg` | Auto-insert issue key from branch name |
+| `.github/ISSUE_TEMPLATE/epic.yml` | Epic issue template |
+| `.github/ISSUE_TEMPLATE/feature.yml` | Feature / PRD issue template |
+| `.github/ISSUE_TEMPLATE/story.yml` | User Story issue template |
+| `.github/ISSUE_TEMPLATE/task.yml` | Task issue template |
+| `.github/ISSUE_TEMPLATE/bug.yml` | Bug report issue template |
 | `.github/workflows/aipm-governance.yml` | CI: validate commits + issue lifecycle completeness |
 | `.github/workflows/issue-status-sync.yml` | Auto-transition status labels on events |
 | `.github/workflows/ai-agent-dispatch.yml` | Route work to Claude/Codex via labels |
 | `.github/workflows/release-please.yml` | Automated CHANGELOG and releases |
 | `.github/pull_request_template.md` | PR checklist with lifecycle verification |
-| `.github/ISSUE_TEMPLATE/aipm-major.md` | Structured issue template |
-| `CLAUDE.md` / `AGENTS.md` | AI agent instruction blocks |
+| `CLAUDE.md` / `AGENTS.md` | AI agent instruction blocks with `[PM]` trigger |
 | `.aipm/ops.env` | Per-repo issue key prefix |
 
 ### 3. Bootstrap all repos at once
@@ -66,10 +70,10 @@ This installs:
 ```
 
 ```
-| Repo      | AgentRules | IssueLog | Labels | Template | GovernanceCI | Hooks     | OpsEnv | Prefix |
-|-----------|-----------|---------|--------|----------|-------------|-----------|--------|--------|
-| my-app    | yes       | yes     | yes    | yes      | yes         | yes/yes   | yes    | MA     |
-| my-service| yes       | yes     | yes    | yes      | yes         | yes/yes   | yes    | MS     |
+| Repo       | AgentRules | IssueLog | Labels | MajorTemplate | GovernanceCI | Hooks       | OpsEnv | Prefix |
+|------------|------------|----------|--------|---------------|--------------|-------------|--------|--------|
+| my-app     | yes        | yes      | yes    | yes           | yes          | yes/yes     | yes    | MA     |
+| my-service | yes        | yes      | yes    | yes           | yes          | yes/yes     | yes    | MS     |
 ```
 
 ## How It Works
@@ -90,16 +94,39 @@ Layer 3: PR Governance
 
 ### `[PM]` Trigger (AI Agents)
 
-Add `[PM]` to your prompt in Claude Code or Codex CLI. The agent auto-detects the current phase and executes the next step:
+Add `[PM]` to your prompt in Claude Code or Codex CLI to activate issue-driven lifecycle mode.
+
+#### MODE 1 — Start (New Task)
 
 ```
-[PM] Add OAuth token refresh    → Creates issue + START log
-[PM]                            → Plans/PRD
-[PM]                            → Implements + PROGRESS log
-[PM]                            → Verifies
-[PM]                            → RESULT log + Commit
-[PM]                            → Push
+[pm] Add OAuth token refresh
 ```
+
+Fully automated from issue creation to commit/push — runs continuously without stopping:
+
+```
+① Create issue → ② Write plan doc → ③ Implement → ④ Verify → ⑤ Document result → ⑥ Commit → ⑦ Push + Close
+```
+
+#### MODE 2 — Closeout (Retrospective)
+
+```
+[pm]
+```
+
+Used at the end of a session. The agent infers completed work from conversation context and processes retroactive documentation in bulk:
+
+```
+① Confirm/create issue → ② Reconstruct plan doc → ③ Write result/retrospective doc → ④ Update related docs → ⑤ issue-log result+close → ⑥ Commit + Push
+```
+
+#### Mode Auto-Detection
+
+| Condition | Mode |
+|-----------|------|
+| `[pm] <description>` + no active issue | MODE 1 — Start |
+| `[pm]` alone + work completed in conversation | MODE 2 — Closeout |
+| `[pm]` alone + work in progress | MODE 1 — Continue |
 
 Without `[PM]`, the agent executes directly with no issue tracking.
 
@@ -134,6 +161,18 @@ feat/PREFIX-42-oauth-refresh
 fix/PREFIX-17-login-timeout
 ```
 
+## Issue Hierarchy
+
+```
+Initiative  (strategic goal, quarterly~annual)
+  └── Epic       (large feature bundle, weeks~months)
+        └── Feature    (single feature, 1–3 sprints)
+              └── Story      (user requirement, 1 sprint)
+                    └── Task / Bug  (concrete work, 1–3 days)
+```
+
+Issue title prefix must match type: `[Epic]`, `[Feature]`, `[Story]`, `[Task]`, `[Bug]`.
+
 ## Issue Lifecycle Logging
 
 ```bash
@@ -147,28 +186,22 @@ fix/PREFIX-17-login-timeout
 ./scripts/issue-log.sh 42 prd docs/prd.md
 
 # Log result and close
-./scripts/issue-log.sh 42 result - --close
+./scripts/issue-log.sh 42 result docs/result.md --close
 ```
 
-Each command posts a structured comment to the GitHub issue:
-
-```markdown
-### START | PREFIX-42
-- Timestamp: 2026-02-18 12:26 KST
-- Commit: `abc1234`
-
-<your content>
-```
+Each command posts a structured comment to the GitHub issue.
 
 ## Label Taxonomy
 
-| Group | Labels |
-|-------|--------|
-| Area | `area:aipm` |
-| Type | `type:prd`, `type:plan`, `type:task`, `type:bug`, `type:chore`, `type:result` |
-| Status | `status:todo`, `status:in-progress`, `status:blocked`, `status:review`, `status:done` |
-| Priority | `priority:p0` ... `priority:p3` |
-| Agent | `agent:claude`, `agent:codex`, `agent:auto` |
+4-axis system, 34+ labels total:
+
+| Axis | Labels |
+|------|--------|
+| **type** | `type:epic`, `type:feature`, `type:story`, `type:task`, `type:bug`, `type:chore`, `type:docs`, `type:refactor` |
+| **status** | `status:todo`, `status:in-progress`, `status:blocked`, `status:review`, `status:done`, `status:wont-fix`, `status:duplicate` |
+| **priority** | `priority:p0`, `priority:p1`, `priority:p2`, `priority:p3` |
+| **area** | `area:backend`, `area:frontend`, `area:infra`, `area:database`, `area:api`, `area:ai-agent`, `area:security`, `area:ux`, `area:docs`, `area:aipm` |
+| **agent** | `agent:claude`, `agent:codex`, `agent:auto` |
 
 Status labels transition automatically via `issue-status-sync.yml`.
 
@@ -210,7 +243,9 @@ aipm-ops/
 ├── scripts/
 │   ├── aipm-bootstrap-repo.sh    # Bootstrap one repo
 │   ├── aipm-bootstrap-all.sh     # Bootstrap all repos under a root
-│   └── aipm-audit-repos.sh       # Audit compliance across repos
+│   ├── aipm-audit-repos.sh       # Audit compliance across repos
+│   ├── issue-log.sh              # Lifecycle log CLI
+│   └── setup-labels.sh           # Label sync CLI
 ├── templates/aipm-ops/           # Source templates (with __PLACEHOLDER__)
 │   ├── scripts/
 │   │   ├── issue-log.sh
@@ -221,7 +256,13 @@ aipm-ops/
 │   │   └── prepare-commit-msg
 │   └── .github/
 │       ├── pull_request_template.md
-│       ├── ISSUE_TEMPLATE/aipm-major.md
+│       ├── ISSUE_TEMPLATE/
+│       │   ├── aipm-major.md
+│       │   ├── epic.yml
+│       │   ├── feature.yml
+│       │   ├── story.yml
+│       │   ├── task.yml
+│       │   └── bug.yml
 │       └── workflows/
 │           ├── aipm-governance.yml
 │           ├── issue-status-sync.yml
