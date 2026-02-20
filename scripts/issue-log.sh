@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-# Managed by AIPM Ops Bootstrap
 set -euo pipefail
 
 usage() {
@@ -24,8 +23,16 @@ fi
 
 issue_number="$1"
 phase="$2"
-body_file="${3:-}"
-close_flag="${4:-}"
+shift 2
+
+body_file=""
+close_flag=""
+for arg in "$@"; do
+  case "$arg" in
+    --close) close_flag="--close" ;;
+    *) [[ -z "$body_file" ]] && body_file="$arg" ;;
+  esac
+done
 
 case "$phase" in
   start|progress|end|prd|plan|result) ;;
@@ -39,7 +46,7 @@ esac
 repo_root="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 cd "$repo_root"
 
-issue_key_prefix="AOPS"
+issue_key_prefix="AIPM"
 if [[ -f ".aipm/ops.env" ]]; then
   # shellcheck disable=SC1091
   source ".aipm/ops.env"
