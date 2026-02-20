@@ -8,18 +8,38 @@ Use GitHub Issues as the single source of truth for task start, progress, and co
 
 | Group | Labels |
 |-------|--------|
-| Area | `area:aipm` |
-| Type | `type:prd`, `type:plan`, `type:task`, `type:bug`, `type:chore`, `type:result` |
-| Status | `status:todo`, `status:in-progress`, `status:blocked`, `status:review`, `status:done` |
+| Type | `type:epic`, `type:feature`, `type:story`, `type:task`, `type:bug`, `type:chore`, `type:docs`, `type:refactor` |
+| Status | `status:todo`, `status:in-progress`, `status:blocked`, `status:review`, `status:done`, `status:wont-fix`, `status:duplicate` |
 | Priority | `priority:p0`, `priority:p1`, `priority:p2`, `priority:p3` |
+| Area | `area:backend`, `area:frontend`, `area:infra`, `area:database`, `area:api`, `area:ai-agent`, `area:security`, `area:ux`, `area:docs`, `area:aipm` |
 | Agent | `agent:claude`, `agent:codex`, `agent:auto` |
+
+## Issue Hierarchy
+
+```
+Initiative  (strategic goal, quarterly~annual)
+  └── Epic       (large feature bundle, weeks~months)
+        └── Feature    (single feature, 1–3 sprints)
+              └── Story      (user requirement, 1 sprint)
+                    └── Task / Bug  (concrete work, 1–3 days)
+```
+
+Issue title prefix must match type: `[Epic]`, `[Feature]`, `[Story]`, `[Task]`, `[Bug]`.
 
 ## Lifecycle
 
-1. Create issue with `area:*`, one `type:*`, one `priority:*`, and `status:todo`.
-2. When work starts, switch to `status:in-progress` and add `START` log.
-3. During execution, post `PROGRESS` logs as needed.
-4. On completion, add `RESULT` log, switch to `status:done`, and close the issue.
+```
+[Created] status:todo
+  → [Started]   status:in-progress  +  issue-log start
+  → [Progress]  issue-log progress  (repeat as needed)
+  → [Done]      status:done  +  issue-log result  +  close
+```
+
+```bash
+./scripts/issue-log.sh <n> start
+./scripts/issue-log.sh <n> progress
+./scripts/issue-log.sh <n> result docs/result.md --close
+```
 
 ## Required Logs Per Issue
 
@@ -32,21 +52,21 @@ For PR governance to pass, referenced issues must have:
 ## Branch Naming
 
 - Format: `<type>/<PREFIX>-<n>-<slug>`
-- Examples: `feat/MA-17-oauth-refresh`, `fix/MS-5-login-timeout`
+- Examples: `feat/AO-5-oauth-refresh`, `fix/AO-12-login-timeout`
 - The `prepare-commit-msg` hook extracts the issue number from branch name automatically.
 
 ## Commit Format
 
 ```
-[PREFIX-n] type(scope): summary
+[AO-n] type(scope): summary
 
 Description (optional)
 
 Refs #n | Closes #n | Fixes #n
 ```
 
-- **Subject**: `[PREFIX-n] type(scope): summary`
-- **Scope** is optional: `[PREFIX-n] type: summary` is also valid
+- **Subject**: `[AO-n] type(scope): summary`
+- **Scope** is optional: `[AO-n] type: summary` is also valid
 - **Body** must include one of: `Refs #n`, `Closes #n`, `Fixes #n`
 
 ## Status Auto-Transitions
@@ -63,17 +83,32 @@ The `issue-status-sync.yml` workflow automatically transitions status labels:
 
 ## `[PM]` Trigger
 
-Add `[PM]` to the beginning of your prompt to activate project management mode. The agent auto-detects the current phase and advances:
+Add `[PM]` to your prompt to activate issue-driven lifecycle mode.
 
-| Input | Phase |
-|-------|-------|
-| `[PM] <new topic>` | Intake: create issue + START |
-| `[PM]` | PRD/Plan |
-| `[PM]` | Implement + PROGRESS |
-| `[PM]` | Verify |
-| `[PM]` | Close: RESULT + commit |
-| `[PM]` | Deploy: push |
+### MODE 1 — Start (New Task)
 
-Case-insensitive: `[PM]`, `[pm]`, `[Pm]` all work.
+`[pm] <task description>` — Fully automated from issue creation to commit/push.
+
+```
+① Create issue → ② Write plan doc → ③ Implement → ④ Verify → ⑤ Document result → ⑥ Commit → ⑦ Push + Close
+```
+
+Steps run continuously without stopping. Pauses only when user confirmation is required.
+
+### MODE 2 — Closeout (Retrospective)
+
+`[pm]` alone — Infers completed work from conversation context and processes retroactive documentation in bulk.
+
+```
+① Confirm/create issue → ② Reconstruct plan doc → ③ Write result/retrospective doc → ④ Update related docs → ⑤ issue-log result+close → ⑥ Commit + Push
+```
+
+### Mode Auto-Detection
+
+| Condition | Mode |
+|-----------|------|
+| `[pm] <description>` + no active issue | MODE 1 (Start) |
+| `[pm]` alone + work completed in conversation | MODE 2 (Closeout) |
+| `[pm]` alone + work in progress | MODE 1 (Continue) |
 
 Without `[PM]`, the agent executes directly with no issue tracking.
