@@ -1,63 +1,58 @@
 name: "Bug Report"
-description: "버그 신고 및 수정 요청"
+description: "Report and request a bug fix"
 title: "[Bug] "
 labels: ["type:bug", "status:todo"]
 body:
   - type: textarea
     id: summary
     attributes:
-      label: "버그 요약"
-      description: "한 문장으로 설명"
+      label: "Bug Summary"
+      description: "Describe in one sentence"
     validations:
       required: true
 
   - type: textarea
     id: steps
     attributes:
-      label: "재현 절차"
+      label: "Reproduction Steps"
       placeholder: |
-        1. ...으로 이동
-        2. ...을 클릭
-        3. 오류 발생 확인
+        1. Go to …
+        2. Click …
+        3. See error
     validations:
       required: true
 
   - type: textarea
     id: expected
     attributes:
-      label: "기대 동작"
+      label: "Expected Behavior"
     validations:
       required: true
 
   - type: textarea
     id: actual
     attributes:
-      label: "실제 동작"
+      label: "Actual Behavior"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: "Severity"
+      options:
+        - "p0 - Critical (service down)"
+        - "p1 - High (major feature broken)"
+        - "p2 - Medium (workaround exists)"
+        - "p3 - Low (cosmetic)"
     validations:
       required: true
 
   - type: textarea
     id: environment
     attributes:
-      label: "환경 정보"
+      label: "Environment"
       placeholder: |
-        - OS: macOS 15.x
-        - Browser / Runtime: Chrome 130 / Node 22
-        - App Version: v1.0.0
-
-  - type: textarea
-    id: logs
-    attributes:
-      label: "로그 / 스크린샷"
-
-  - type: dropdown
-    id: severity
-    attributes:
-      label: "심각도"
-      options:
-        - "Critical - 서비스 중단"
-        - "High - 핵심 기능 장애"
-        - "Medium - 일부 기능 장애"
-        - "Low - 사용성 불편"
-    validations:
-      required: true
+        - OS: 
+        - Browser/Runtime: 
+        - Version: 
