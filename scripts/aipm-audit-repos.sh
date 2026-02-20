@@ -118,7 +118,7 @@ while IFS= read -r repo_path; do
   repo_name="$(basename "$repo_path")"
 
   has_agent_rules=0
-  if file_contains 'AIPM-ISSUE-OPS|AIPM-MAJOR|Issue-Driven Workflow|Create or identify a GitHub issue first|이슈.*먼저|Closes #<issue-number>' \
+  if file_contains 'AIPM-ISSUE-OPS|AIPM-MAJOR|Issue-Driven Workflow|Create or identify a GitHub issue first|Closes #<issue-number>' \
     "$repo_path/AGENTS.md" "$repo_path/CLAUDE.md"; then
     has_agent_rules=1
   fi
