@@ -19,7 +19,7 @@ if [[ "$subject" =~ ^\[[A-Z][A-Z0-9_-]*-[0-9]+\][[:space:]] ]]; then
 fi
 
 repo_root="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
-issue_key_prefix="AIPMOPS"
+issue_key_prefix="AIPM"
 if [[ -f "$repo_root/.aipm/ops.env" ]]; then
   # shellcheck disable=SC1091
   source "$repo_root/.aipm/ops.env"
@@ -29,7 +29,11 @@ issue_key_prefix="${ISSUE_KEY_PREFIX:-$issue_key_prefix}"
 issue_number="${AIPM_ISSUE:-}"
 if [[ -z "$issue_number" ]]; then
   branch="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
-  if [[ "$branch" =~ ([0-9]{1,6}) ]]; then
+  # Prefer PREFIX-N pattern (e.g. AIPM-42) over bare numbers
+  prefix_pattern="[A-Z][A-Z0-9_-]*-([0-9]{1,6})"
+  if [[ "$branch" =~ $prefix_pattern ]]; then
+    issue_number="${BASH_REMATCH[1]}"
+  elif [[ "$branch" =~ ([0-9]{1,6}) ]]; then
     issue_number="${BASH_REMATCH[1]}"
   fi
 fi
