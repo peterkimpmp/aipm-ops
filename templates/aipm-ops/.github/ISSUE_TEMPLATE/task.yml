@@ -1,0 +1,54 @@
+name: "Task"
+description: "구체적인 기술 작업 단위 (1~3일)"
+title: "[Task] "
+labels: ["type:task", "status:todo"]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: "작업 내용"
+      description: "무엇을 어떻게 구현할 것인지 기술"
+    validations:
+      required: true
+
+  - type: textarea
+    id: checklist
+    attributes:
+      label: "완료 체크리스트"
+      placeholder: |
+        - [ ] 구현
+        - [ ] 코드 리뷰 통과
+        - [ ] 테스트 통과
+        - [ ] 문서 업데이트
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: "작업 영역"
+      options:
+        - "backend"
+        - "frontend"
+        - "infra"
+        - "database"
+        - "testing"
+        - "docs"
+        - "devops"
+        - "ai-agent"
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: "우선순위"
+      options:
+        - "P0 - Critical"
+        - "P1 - High"
+        - "P2 - Medium"
+        - "P3 - Low"
+    validations:
+      required: true
+
+  - type: input
+    id: parent_link
+    attributes:
+      label: "상위 Story / Feature"
+      placeholder: "#이슈번호"

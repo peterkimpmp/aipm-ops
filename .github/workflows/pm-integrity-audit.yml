@@ -1,0 +1,91 @@
+name: PM Integrity Audit
+
+on:
+  workflow_dispatch:
+    inputs:
+      state:
+        description: Issue state to audit
+        required: true
+        type: choice
+        default: open
+        options:
+          - open
+          - closed
+          - all
+      strict:
+        description: Fail workflow when violations are found
+        required: true
+        type: choice
+        default: "true"
+        options:
+          - "true"
+          - "false"
+  schedule:
+    - cron: "25 23 * * *"
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: read
+      pull-requests: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run PM integrity audit
+        id: audit
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          state="open"
+          strict_mode="true"
+          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
+            state="${{ inputs.state }}"
+            strict_mode="${{ inputs.strict }}"
+          fi
+
+          cmd=(bash ./scripts/check-pm-integrity.sh --state "$state" --json)
+          if [[ "$strict_mode" == "true" ]]; then
+            cmd+=(--strict)
+          fi
+
+          set +e
+          "${cmd[@]}" > pm-integrity-report.json
+          exit_code=$?
+          set -e
+
+          echo "state=$state" >> "$GITHUB_OUTPUT"
+          echo "strict_mode=$strict_mode" >> "$GITHUB_OUTPUT"
+          echo "exit_code=$exit_code" >> "$GITHUB_OUTPUT"
+
+          violation_count="$(jq -r '.violation_count' pm-integrity-report.json)"
+          {
+            echo "### PM Integrity Audit"
+            echo "- State: $state"
+            echo "- Strict: $strict_mode"
+            echo "- Violations: $violation_count"
+            echo ""
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [[ "$violation_count" -gt 0 ]]; then
+            {
+              echo "#### Violations"
+              jq -r '.violations[] | "- #\(.issue) [\(.code)] \(.message)"' pm-integrity-report.json | head -n 50
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+          if [[ "$exit_code" -ne 0 ]]; then
+            exit "$exit_code"
+          fi
+
+      - name: Upload PM integrity report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pm-integrity-report
+          path: pm-integrity-report.json

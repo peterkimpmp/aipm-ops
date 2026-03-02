@@ -13,8 +13,8 @@ Options:
   --force                    Overwrite files managed by this bootstrap
 
 Examples:
-  ./scripts/aipm-bootstrap-repo.sh --repo ~/projects/my-app --dry-run
-  ./scripts/aipm-bootstrap-repo.sh --repo ~/projects/my-service
+  ./scripts/aipm-bootstrap-repo.sh --repo ~/GitHub/vibe-project --dry-run
+  ./scripts/aipm-bootstrap-repo.sh --repo ~/GitHub/publishing-pipeline
 USAGE
 }
 
@@ -212,24 +212,113 @@ $begin
 ## AIPM Issue Ops (Managed)
 
 ### `[PM]` Trigger
-When a user prompt contains `[PM]` (case-insensitive), activate issue-driven lifecycle.
-Auto-detect the current phase from context and execute the next step.
-- `[PM] <description>` — Start or continue work on the described task.
-- `[PM]` alone — Auto-advance to the next phase.
-- Without `[PM]` — Execute directly, no issue tracking.
+
+When a prompt contains `[PM]` (case-insensitive), enable issue-driven lifecycle automation.
+**Without `[PM]`, execute directly without issue tracking.**
+
+#### MODE 1 — START
+`[pm] <work description>` starts the lifecycle automatically. (**no milestone/release creation**)
+1. Create issue via `pm-start`
+2. Record required logs: `issue-log start/plan/progress` (**placeholder bodies are not allowed**)
+3. Create default branch/worktree (`<type>/<PREFIX>-<n>-<slug>`)
+
+#### MODE 2 — CLOSEOUT
+`[pm] done` or `[pm] close` runs explicit closeout.
+1. Prepare result/retrospective document and update related docs
+2. Verify linked PR is merged (required by default)
+3. Run `pm-close` (modernization guard + `issue-log result --close`)
+
+#### MODE 3 — RELEASE
+`[pm] release [patch|minor|major]` runs standard tag/release automation (default: `patch`).
+1. Compute latest version + bump (`patch`/`minor`/`major`)
+2. Ensure matching milestone exists (create when missing)
+3. Create/push tag
+4. Generate release notes from the standard template
+5. Run `gh release create/edit`
+6. Assign release-range issues to the matching milestone
+7. Verify release version == milestone version (1:1) + assignment parity
+8. Optionally backfill historical releases (`./scripts/pm-release.sh --backfill-all`)
+
+#### SYNC CHECKPOINT
+`[pm]` alone runs sync checks for the current lifecycle state.
+- If an active issue exists: run progress/sync checks
+- If no active issue exists: run status/sync checks only (no new issue creation)
+
+#### EXPLICIT CLOSE
+`[pm] done` or `[pm] close` explicitly triggers MODE 2.
+
+#### AUTO MODE DETECTION
+| Condition | Mode |
+|------|------|
+| `[pm] <description>` + no active issue | MODE 1 (START) |
+| `[pm] release [patch\|minor\|major]` | MODE 3 (RELEASE) |
+| `[pm] done` / `[pm] close` | MODE 2 (CLOSEOUT) |
+| `[pm]` alone + active issue exists | SYNC CHECKPOINT |
+| `[pm]` alone + no active issue | status/sync check |
+
+#### PM TRIGGER STANDARD MAPPING
+- `[pm] <title>` → `./scripts/pm-start.sh --title "<title>"`
+- `[pm]` → active-issue progress/sync checkpoint (`./scripts/pm-sync.sh` for manual audit)
+- `[pm] done|close` → `./scripts/pm-close.sh <issue> <result-file>` (defaults: merged PR + worktree cleanup required)
+- `[pm] release [patch|minor|major]` → `./scripts/pm-release.sh [patch|minor|major]`
+
+#### ISSUE LABEL RULES (REQUIRED)
+- `[PM]` issue creation must use `./scripts/issue-create.sh`.
+- Forbidden: passing bare labels(`feature`, `epic`, `story`, `task`, `bug`, `chore`, `docs`, `refactor`) directly via `--label`.
+- Standard label taxonomy: `type:*`, `status:*`, `priority:*`, `area:*`, `agent:*`.
+- Defaults: `type:task` when type is omitted, `status:todo` when status is omitted.
+- Multi-line bodies should use `--body-file` by default (`AIPM_ISSUE_BODY_MODE=file` in `.aipm/ops.env`).
+
+| Title Prefix | Canonical Label |
+|------|------|
+| `[Epic]` | `type:epic` |
+| `[Feature]` | `type:feature` |
+| `[Story]` | `type:story` |
+| `[Task]` | `type:task` |
+| `[Bug]` | `type:bug` |
+| `[Chore]` | `type:chore` |
+| `[Docs]` | `type:docs` |
+| `[Refactor]` | `type:refactor` |
+| `[PRD]` | `type:prd` |
+| `[Plan]` | `type:plan` |
+| `[Result]` | `type:result` |
+
+#### RELEASE NOTE STANDARD (REQUIRED)
+- Release notes must include these fixed sections:
+  - `## Highlights`
+  - `## Changed by Type` (`Added/Changed/Fixed/Removed/Deprecated/Security`)
+  - `## Compatibility`
+  - `## Validation`
+  - `## Links`
+- Inferred statements for historical backfills must be marked explicitly.
+- Parity scope is SemVer only (`vX.Y.Z`).
+- Release version and milestone version must be 1:1.
+- Any milestone with a release must have at least one assigned issue.
+- Track progress through issue assignments (do not encode issue numbers in milestone description).
+- Automation commands: `./scripts/pm-release.sh` (default patch), `./scripts/pm-release.sh patch|minor|major`.
+
+#### STATUS CHECK
+`[AIPM-CHECK] #<issue-number>` reports current state, progress summary, and next action.
 
 ### Commit Format
 - Subject: `[__ISSUE_KEY_PREFIX__-<n>] <type>(<scope>): <summary>`
 - Body: `Refs #<n>` or `Closes #<n>` or `Fixes #<n>`
 
-### Branch Naming
-- `<type>/<__ISSUE_KEY_PREFIX__>-<n>-<slug>`
-
 ### Quick Commands
 - `./scripts/setup-labels.sh`
+- `./scripts/issue-create.sh --title "[Task] ..." --body "..."`
+- `./scripts/pm-start.sh --title "[Task] ..." --start-file docs/start.md --plan-file docs/plan.md --progress-file docs/progress.md`
 - `./scripts/issue-log.sh <issue> start`
+- `./scripts/issue-log.sh <issue> plan`
 - `./scripts/issue-log.sh <issue> progress`
-- `./scripts/issue-log.sh <issue> result docs/result.md --close`
+- `./scripts/pm-sync.sh`
+- `./scripts/pm-modernize.sh --issue <issue> --result-file docs/result.md`
+- `./scripts/pm-close.sh <issue> docs/result.md`
+- `./scripts/check-pm-integrity.sh --state open --strict`
+- `./scripts/pm-release.sh`
+- `./scripts/pm-release.sh patch|minor|major`
+- `./scripts/pm-release.sh --backfill-all --bootstrap-if-missing`
+- `./scripts/check-release-milestone-parity.sh --strict`
 $end
 BLOCK
 )"
@@ -238,8 +327,31 @@ BLOCK
   block="${block//\$end/$end}"
 
   if [[ -f "$target" ]] && grep -q "$begin" "$target"; then
-    log_action "SKIP" "$rel_path" "managed instruction block already present"
-    skip_count=$((skip_count + 1))
+    if [[ "$force" -eq 1 ]]; then
+      if [[ "$dry_run" -eq 1 ]]; then
+        log_action "PLAN" "$rel_path" "would update managed instruction block"
+        plan_count=$((plan_count + 1))
+      else
+        # Replace content between BEGIN/END markers
+        local tmp_block
+        tmp_block="$(mktemp)"
+        echo "$block" >"$tmp_block"
+        local tmp_out
+        tmp_out="$(mktemp)"
+        awk -v bf="$tmp_block" -v b="$begin" -v e="$end" '
+          $0 ~ b { printing=0; while((getline line < bf)>0) print line; next }
+          $0 ~ e { printing=1; next }
+          printing!=0 { print }
+        ' "$target" >"$tmp_out"
+        mv "$tmp_out" "$target"
+        rm -f "$tmp_block"
+        log_action "UPDATE" "$rel_path" "updated managed instruction block"
+        update_count=$((update_count + 1))
+      fi
+    else
+      log_action "SKIP" "$rel_path" "managed instruction block already present"
+      skip_count=$((skip_count + 1))
+    fi
     return
   fi
 
@@ -306,15 +418,30 @@ echo "Repo: $repo_path"
 echo "Issue key prefix: $issue_key_prefix"
 
 ensure_template_file "scripts/issue-log.sh" "scripts/issue-log.sh" "755"
+ensure_template_file "scripts/issue-create.sh" "scripts/issue-create.sh" "755"
 ensure_template_file "scripts/setup-labels.sh" "scripts/setup-labels.sh" "755"
+ensure_template_file "scripts/pm-start.sh" "scripts/pm-start.sh" "755"
+ensure_template_file "scripts/pm-close.sh" "scripts/pm-close.sh" "755"
+ensure_template_file "scripts/pm-sync.sh" "scripts/pm-sync.sh" "755"
+ensure_template_file "scripts/pm-modernize.sh" "scripts/pm-modernize.sh" "755"
+ensure_template_file "scripts/pm-release.sh" "scripts/pm-release.sh" "755"
+ensure_template_file "scripts/check-pm-integrity.sh" "scripts/check-pm-integrity.sh" "755"
+ensure_template_file "scripts/check-release-milestone-parity.sh" "scripts/check-release-milestone-parity.sh" "755"
+ensure_template_file ".gitignore" ".gitignore" "644"
 ensure_template_file ".aipm/ops.env" ".aipm/ops.env" "644"
 ensure_template_file ".githooks/prepare-commit-msg" ".githooks/prepare-commit-msg" "755"
 ensure_template_file ".githooks/commit-msg" ".githooks/commit-msg" "755"
 ensure_template_file ".github/ISSUE_TEMPLATE/aipm-major.md" ".github/ISSUE_TEMPLATE/aipm-major.md" "644"
+ensure_template_file ".github/ISSUE_TEMPLATE/epic.yml"     ".github/ISSUE_TEMPLATE/epic.yml"     "644"
+ensure_template_file ".github/ISSUE_TEMPLATE/feature.yml"  ".github/ISSUE_TEMPLATE/feature.yml"  "644"
+ensure_template_file ".github/ISSUE_TEMPLATE/story.yml"    ".github/ISSUE_TEMPLATE/story.yml"    "644"
+ensure_template_file ".github/ISSUE_TEMPLATE/task.yml"     ".github/ISSUE_TEMPLATE/task.yml"     "644"
+ensure_template_file ".github/ISSUE_TEMPLATE/bug.yml"      ".github/ISSUE_TEMPLATE/bug.yml"      "644"
 
 ensure_template_file ".github/workflows/aipm-governance.yml" ".github/workflows/aipm-governance.yml" "644"
 ensure_template_file ".github/workflows/issue-status-sync.yml" ".github/workflows/issue-status-sync.yml" "644"
 ensure_template_file ".github/workflows/ai-agent-dispatch.yml" ".github/workflows/ai-agent-dispatch.yml" "644"
+ensure_template_file ".github/workflows/pm-integrity-audit.yml" ".github/workflows/pm-integrity-audit.yml" "644"
 ensure_template_file ".github/workflows/release-please.yml" ".github/workflows/release-please.yml" "644"
 ensure_template_file ".github/pull_request_template.md" ".github/pull_request_template.md" "644"
 

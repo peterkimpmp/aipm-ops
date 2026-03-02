@@ -14,6 +14,16 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Validate research naming
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! bash ./scripts/check-research-naming.sh; then
+            echo "research naming mismatch detected."
+            echo "run: ./scripts/research-log.sh fix-naming --dry-run"
+            exit 1
+          fi
+
       - name: Validate commit issue linkage
         shell: bash
         run: |

@@ -1,4 +1,3 @@
-# Managed by AIPM Ops Bootstrap
 name: AI Agent Dispatch
 
 on:
@@ -27,7 +26,7 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          model: "claude-sonnet-4-20250514"
+          model: "claude-sonnet-4-6"
           max_turns: 25
 
   dispatch-codex:
@@ -53,7 +52,10 @@ jobs:
   dispatch-auto:
     if: |
       (github.event_name == 'issues' && github.event.label.name == 'agent:auto') ||
-      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@ai-agent'))
+      (github.event_name == 'issue_comment' &&
+       contains(github.event.comment.body, '@ai-agent') &&
+       !contains(github.event.comment.body, '@ai-agent claude') &&
+       !contains(github.event.comment.body, '@ai-agent codex'))
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -65,9 +67,10 @@ jobs:
         with:
           fetch-depth: 1
 
+      # Default backend: Claude (configurable via repo variable)
       - name: Run default agent
         uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          model: ${{ vars.AI_AGENT_DEFAULT_MODEL || 'claude-sonnet-4-20250514' }}
+          model: ${{ vars.AI_AGENT_DEFAULT_MODEL || 'claude-sonnet-4-6' }}
           max_turns: 25

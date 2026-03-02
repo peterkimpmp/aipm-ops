@@ -40,7 +40,15 @@ This installs:
 
 | Component | Description |
 |-----------|-------------|
+| `scripts/issue-create.sh` | Create normalized issues with canonical labels |
 | `scripts/issue-log.sh` | Post lifecycle logs (START/PROGRESS/RESULT) to GitHub Issues |
+| `scripts/pm-start.sh` | Start flow: issue + logs + branch/worktree |
+| `scripts/pm-close.sh` | Closeout flow: modernization guard + close |
+| `scripts/pm-sync.sh` | Audit state/worktree sync and orphan worktrees |
+| `scripts/pm-modernize.sh` | Pre-close modernization checks and flag recording |
+| `scripts/pm-release.sh` | Release/milestone parity automation |
+| `scripts/check-pm-integrity.sh` | Audit `type:*` / `status:*` label integrity |
+| `scripts/check-release-milestone-parity.sh` | Verify release-to-milestone parity |
 | `scripts/setup-labels.sh` | Create 4-axis label taxonomy (type/status/priority/area/agent) |
 | `.githooks/commit-msg` | Block commits without issue key |
 | `.githooks/prepare-commit-msg` | Auto-insert issue key from branch name |
@@ -52,6 +60,7 @@ This installs:
 | `.github/workflows/aipm-governance.yml` | CI: validate commits + issue lifecycle completeness |
 | `.github/workflows/issue-status-sync.yml` | Auto-transition status labels on events |
 | `.github/workflows/ai-agent-dispatch.yml` | Route work to Claude/Codex via labels |
+| `.github/workflows/pm-integrity-audit.yml` | Scheduled PM integrity audit |
 | `.github/workflows/release-please.yml` | Automated CHANGELOG and releases |
 | `.github/pull_request_template.md` | PR checklist with lifecycle verification |
 | `CLAUDE.md` / `AGENTS.md` | AI agent instruction blocks with `[PM]` trigger |
@@ -96,37 +105,47 @@ Layer 3: PR Governance
 
 Add `[PM]` to your prompt in Claude Code or Codex CLI to activate issue-driven lifecycle mode.
 
-#### MODE 1 — Start (New Task)
+#### MODE 1 — START
 
 ```
 [pm] Add OAuth token refresh
 ```
 
-Fully automated from issue creation to commit/push — runs continuously without stopping:
+`[pm] <work description>` starts lifecycle automation:
+1. Create issue via `pm-start`
+2. Record required logs (`start` / `plan` / `progress`)
+3. Create default branch/worktree
+
+#### MODE 2 — CLOSEOUT
 
 ```
-① Create issue → ② Write plan doc → ③ Implement → ④ Verify → ⑤ Document result → ⑥ Commit → ⑦ Push + Close
+[pm] done
+[pm] close
 ```
 
-#### MODE 2 — Closeout (Retrospective)
+Explicit closeout:
+1. Prepare result/retrospective and update related docs
+2. Verify linked PR merge (required by default)
+3. Run `pm-close` (`pm-modernize` + `issue-log result --close`)
+
+#### SYNC CHECKPOINT
 
 ```
 [pm]
 ```
 
-Used at the end of a session. The agent infers completed work from conversation context and processes retroactive documentation in bulk:
-
-```
-① Confirm/create issue → ② Reconstruct plan doc → ③ Write result/retrospective doc → ④ Update related docs → ⑤ issue-log result+close → ⑥ Commit + Push
-```
+`[pm]` alone runs progress/sync checks:
+- If active issue exists: run progress/sync checks
+- If no active issue exists: run status/sync checks only
 
 #### Mode Auto-Detection
 
 | Condition | Mode |
 |-----------|------|
-| `[pm] <description>` + no active issue | MODE 1 — Start |
-| `[pm]` alone + work completed in conversation | MODE 2 — Closeout |
-| `[pm]` alone + work in progress | MODE 1 — Continue |
+| `[pm] <description>` + no active issue | MODE 1 — START |
+| `[pm] done` / `[pm] close` | MODE 2 — CLOSEOUT |
+| `[pm]` alone + active issue exists | SYNC CHECKPOINT |
+| `[pm]` alone + no active issue | status/sync check |
 
 Without `[PM]`, the agent executes directly with no issue tracking.
 
@@ -244,12 +263,28 @@ aipm-ops/
 │   ├── aipm-bootstrap-repo.sh    # Bootstrap one repo
 │   ├── aipm-bootstrap-all.sh     # Bootstrap all repos under a root
 │   ├── aipm-audit-repos.sh       # Audit compliance across repos
+│   ├── issue-create.sh           # Canonical issue creation CLI
 │   ├── issue-log.sh              # Lifecycle log CLI
-│   └── setup-labels.sh           # Label sync CLI
+│   ├── setup-labels.sh           # Label sync CLI
+│   ├── pm-start.sh               # PM start flow
+│   ├── pm-close.sh               # PM closeout flow
+│   ├── pm-sync.sh                # PM sync audit
+│   ├── pm-modernize.sh           # Modernization guard
+│   ├── pm-release.sh             # Release/milestone automation
+│   ├── check-pm-integrity.sh     # PM label integrity audit
+│   └── check-release-milestone-parity.sh # Release/milestone parity audit
 ├── templates/aipm-ops/           # Source templates (with __PLACEHOLDER__)
 │   ├── scripts/
+│   │   ├── issue-create.sh
 │   │   ├── issue-log.sh
-│   │   └── setup-labels.sh
+│   │   ├── setup-labels.sh
+│   │   ├── pm-start.sh
+│   │   ├── pm-close.sh
+│   │   ├── pm-sync.sh
+│   │   ├── pm-modernize.sh
+│   │   ├── pm-release.sh
+│   │   ├── check-pm-integrity.sh
+│   │   └── check-release-milestone-parity.sh
 │   ├── .aipm/ops.env
 │   ├── .githooks/
 │   │   ├── commit-msg
@@ -267,6 +302,7 @@ aipm-ops/
 │           ├── aipm-governance.yml
 │           ├── issue-status-sync.yml
 │           ├── ai-agent-dispatch.yml
+│           ├── pm-integrity-audit.yml
 │           └── release-please.yml
 ├── examples/                     # Standalone workflow examples
 ├── docs/
