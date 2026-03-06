@@ -225,8 +225,8 @@ When a prompt contains `[PM]` (case-insensitive), enable issue-driven lifecycle 
 #### MODE 2 — CLOSEOUT
 `[pm] done` or `[pm] close` runs explicit closeout.
 1. Prepare result/retrospective document and update related docs
-2. Verify linked PR is merged (required by default)
-3. Run `pm-close` (modernization guard + `issue-log result --close`)
+2. Keep the result document in the active issue branch/worktree
+3. Run `pm-close --from-active --yes` to land + close
 
 #### MODE 3 — RELEASE
 `[pm] release [patch|minor|major]` runs standard tag/release automation (default: `patch`).
@@ -259,7 +259,7 @@ When a prompt contains `[PM]` (case-insensitive), enable issue-driven lifecycle 
 #### PM TRIGGER STANDARD MAPPING
 - `[pm] <title>` → `./scripts/pm-start.sh --title "<title>"`
 - `[pm]` → active-issue progress/sync checkpoint (`./scripts/pm-sync.sh` for manual audit)
-- `[pm] done|close` → `./scripts/pm-close.sh <issue> <result-file>` (defaults: merged PR + worktree cleanup required)
+- `[pm] done|close` → `./scripts/pm-close.sh --from-active --yes` (defaults: land + close)
 - `[pm] release [patch|minor|major]` → `./scripts/pm-release.sh [patch|minor|major]`
 
 #### ISSUE LABEL RULES (REQUIRED)
@@ -308,11 +308,12 @@ When a prompt contains `[PM]` (case-insensitive), enable issue-driven lifecycle 
 - `./scripts/setup-labels.sh`
 - `./scripts/issue-create.sh --title "[Task] ..." --body "..."`
 - `./scripts/pm-start.sh --title "[Task] ..." --start-file docs/start.md --plan-file docs/plan.md --progress-file docs/progress.md`
+- `./scripts/pm-sync.sh`
 - `./scripts/issue-log.sh <issue> start`
 - `./scripts/issue-log.sh <issue> plan`
 - `./scripts/issue-log.sh <issue> progress`
-- `./scripts/pm-sync.sh`
 - `./scripts/pm-modernize.sh --issue <issue> --result-file docs/result.md`
+- `./scripts/pm-close.sh --from-active --yes`
 - `./scripts/pm-close.sh <issue> docs/result.md`
 - `./scripts/check-pm-integrity.sh --state open --strict`
 - `./scripts/pm-release.sh`
@@ -421,6 +422,7 @@ ensure_template_file "scripts/issue-log.sh" "scripts/issue-log.sh" "755"
 ensure_template_file "scripts/issue-create.sh" "scripts/issue-create.sh" "755"
 ensure_template_file "scripts/setup-labels.sh" "scripts/setup-labels.sh" "755"
 ensure_template_file "scripts/pm-start.sh" "scripts/pm-start.sh" "755"
+ensure_template_file "scripts/pm-state.sh" "scripts/pm-state.sh" "755"
 ensure_template_file "scripts/pm-close.sh" "scripts/pm-close.sh" "755"
 ensure_template_file "scripts/pm-sync.sh" "scripts/pm-sync.sh" "755"
 ensure_template_file "scripts/pm-modernize.sh" "scripts/pm-modernize.sh" "755"

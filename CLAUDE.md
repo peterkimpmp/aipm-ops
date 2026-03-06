@@ -1,5 +1,3 @@
-# CLAUDE Rules
-
 <!-- AIPM-ISSUE-OPS:BEGIN -->
 ## AIPM Issue Ops (Managed)
 
@@ -17,13 +15,8 @@ When a prompt contains `[PM]` (case-insensitive), enable issue-driven lifecycle 
 #### MODE 2 — CLOSEOUT
 `[pm] done` or `[pm] close` runs explicit closeout.
 1. Prepare result/retrospective document and update related docs
-2. Verify linked PR is merged (required by default)
-3. Run `pm-close` (modernization guard + `issue-log result --close`)
-
-#### SYNC CHECKPOINT
-`[pm]` alone runs sync checks for the current lifecycle state.
-- If an active issue exists: run progress/sync checks
-- If no active issue exists: run status/sync checks only (no new issue creation)
+2. Keep the result document in the active issue branch/worktree
+3. Run `pm-close --from-active --yes` to land + close
 
 #### MODE 3 — RELEASE
 `[pm] release [patch|minor|major]` runs standard tag/release automation (default: `patch`).
@@ -35,6 +28,11 @@ When a prompt contains `[PM]` (case-insensitive), enable issue-driven lifecycle 
 6. Assign release-range issues to the matching milestone
 7. Verify release version == milestone version (1:1) + assignment parity
 8. Optionally backfill historical releases (`./scripts/pm-release.sh --backfill-all`)
+
+#### SYNC CHECKPOINT
+`[pm]` alone runs sync checks for the current lifecycle state.
+- If an active issue exists: run progress/sync checks
+- If no active issue exists: run status/sync checks only (no new issue creation)
 
 #### EXPLICIT CLOSE
 `[pm] done` or `[pm] close` explicitly triggers MODE 2.
@@ -51,12 +49,12 @@ When a prompt contains `[PM]` (case-insensitive), enable issue-driven lifecycle 
 #### PM TRIGGER STANDARD MAPPING
 - `[pm] <title>` → `./scripts/pm-start.sh --title "<title>"`
 - `[pm]` → active-issue progress/sync checkpoint (`./scripts/pm-sync.sh` for manual audit)
-- `[pm] done|close` → `./scripts/pm-close.sh <issue> <result-file>` (defaults: merged PR + worktree cleanup required)
+- `[pm] done|close` → `./scripts/pm-close.sh --from-active --yes` (defaults: land + close)
 - `[pm] release [patch|minor|major]` → `./scripts/pm-release.sh [patch|minor|major]`
 
 #### ISSUE LABEL RULES (REQUIRED)
 - `[PM]` issue creation must use `./scripts/issue-create.sh`.
-- Forbidden: passing bare labels (`feature`, `epic`, `story`, `task`, `bug`, `chore`, `docs`, `refactor`) directly via `--label`.
+- Forbidden: passing bare labels(`feature`, `epic`, `story`, `task`, `bug`, `chore`, `docs`, `refactor`) directly via `--label`.
 - Standard label taxonomy: `type:*`, `status:*`, `priority:*`, `area:*`, `agent:*`.
 - Defaults: `type:task` when type is omitted, `status:todo` when status is omitted.
 - Multi-line bodies should use `--body-file` by default (`AIPM_ISSUE_BODY_MODE=file` in `.aipm/ops.env`).
@@ -100,11 +98,12 @@ When a prompt contains `[PM]` (case-insensitive), enable issue-driven lifecycle 
 - `./scripts/setup-labels.sh`
 - `./scripts/issue-create.sh --title "[Task] ..." --body "..."`
 - `./scripts/pm-start.sh --title "[Task] ..." --start-file docs/start.md --plan-file docs/plan.md --progress-file docs/progress.md`
+- `./scripts/pm-sync.sh`
 - `./scripts/issue-log.sh <issue> start`
 - `./scripts/issue-log.sh <issue> plan`
 - `./scripts/issue-log.sh <issue> progress`
-- `./scripts/pm-sync.sh`
 - `./scripts/pm-modernize.sh --issue <issue> --result-file docs/result.md`
+- `./scripts/pm-close.sh --from-active --yes`
 - `./scripts/pm-close.sh <issue> docs/result.md`
 - `./scripts/check-pm-integrity.sh --state open --strict`
 - `./scripts/pm-release.sh`

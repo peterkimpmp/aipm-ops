@@ -217,6 +217,7 @@ This installs:
 - `.github/ISSUE_TEMPLATE/aipm-major.md`
 - `.github/workflows/aipm-governance.yml`
 - Managed blocks appended to `AGENTS.md` and `CLAUDE.md`
+- Managed PM blocks map `[pm] done|close` to `./scripts/pm-close.sh --from-active --yes`
 - `git config core.hooksPath .githooks`
 
 ### 5.2 All Repos at Once

@@ -2,7 +2,7 @@
 
 Issue-driven lifecycle governance for AI-native development teams.
 
-One bootstrap command installs structured traceability, agent-agnostic dispatch, and PR merge gates across any GitHub repo.
+One bootstrap command installs structured traceability, agent-agnostic dispatch, and PM guardrails across any GitHub repo.
 
 ## What It Does
 
@@ -43,8 +43,9 @@ This installs:
 | `scripts/issue-create.sh` | Create normalized issues with canonical labels |
 | `scripts/issue-log.sh` | Post lifecycle logs (START/PROGRESS/RESULT) to GitHub Issues |
 | `scripts/pm-start.sh` | Start flow: issue + logs + branch/worktree |
-| `scripts/pm-close.sh` | Closeout flow: modernization guard + close |
-| `scripts/pm-sync.sh` | Audit state/worktree sync and orphan worktrees |
+| `scripts/pm-state.sh` | Shared active-issue state helpers |
+| `scripts/pm-close.sh` | Closeout flow: land + close from the active issue state |
+| `scripts/pm-sync.sh` | Sync summary based on active issue state |
 | `scripts/pm-modernize.sh` | Pre-close modernization checks and flag recording |
 | `scripts/pm-release.sh` | Release/milestone parity automation |
 | `scripts/check-pm-integrity.sh` | Audit `type:*` / `status:*` label integrity |
@@ -125,8 +126,8 @@ Add `[PM]` to your prompt in Claude Code or Codex CLI to activate issue-driven l
 
 Explicit closeout:
 1. Prepare result/retrospective and update related docs
-2. Verify linked PR merge (required by default)
-3. Run `pm-close` (`pm-modernize` + `issue-log result --close`)
+2. Keep the result document in the active issue branch/worktree
+3. Run `pm-close --from-active --yes` to land + close
 
 #### SYNC CHECKPOINT
 
@@ -210,6 +211,12 @@ Issue title prefix must match type: `[Epic]`, `[Feature]`, `[Story]`, `[Task]`, 
 
 Each command posts a structured comment to the GitHub issue.
 
+Standard close path:
+
+```bash
+./scripts/pm-close.sh --from-active --yes
+```
+
 ## Label Taxonomy
 
 4-axis system, 34+ labels total:
@@ -267,6 +274,7 @@ aipm-ops/
 │   ├── issue-log.sh              # Lifecycle log CLI
 │   ├── setup-labels.sh           # Label sync CLI
 │   ├── pm-start.sh               # PM start flow
+│   ├── pm-state.sh               # Active issue state helpers
 │   ├── pm-close.sh               # PM closeout flow
 │   ├── pm-sync.sh                # PM sync audit
 │   ├── pm-modernize.sh           # Modernization guard
@@ -279,6 +287,7 @@ aipm-ops/
 │   │   ├── issue-log.sh
 │   │   ├── setup-labels.sh
 │   │   ├── pm-start.sh
+│   │   ├── pm-state.sh
 │   │   ├── pm-close.sh
 │   │   ├── pm-sync.sh
 │   │   ├── pm-modernize.sh

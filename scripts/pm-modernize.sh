@@ -5,7 +5,7 @@ set -euo pipefail
 usage() {
   cat <<'USAGE'
 Usage:
-  ./scripts/pm-modernize.sh --issue <issue-number> [--result-file <path>]
+  ./scripts/pm-modernize.sh --issue <issue-number> [--result-file <path>] [--yes]
 
 Examples:
   ./scripts/pm-modernize.sh --issue 218 --result-file docs/results/result-218.md
@@ -14,6 +14,7 @@ USAGE
 
 issue_number=""
 result_file=""
+yes_mode=0
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -34,6 +35,10 @@ while [[ $# -gt 0 ]]; do
       fi
       result_file="$2"
       shift 2
+      ;;
+    --yes)
+      yes_mode=1
+      shift
       ;;
     -h|--help)
       usage
@@ -83,7 +88,9 @@ cat <<'CHECKLIST'
 - Worktree cleanup and main integration status verified
 CHECKLIST
 
-if [[ -t 0 ]]; then
+if [[ "$yes_mode" -eq 1 ]]; then
+  :
+elif [[ -t 0 ]]; then
   echo "[confirm] If modernization is complete, type: MODERNIZED"
   printf "> "
   read -r ack
@@ -92,8 +99,8 @@ if [[ -t 0 ]]; then
     exit 1
   fi
 elif [[ "${AIPM_MODERNIZED:-0}" != "1" ]]; then
-  echo "error: non-interactive modernization requires AIPM_MODERNIZED=1." >&2
-  echo "hint: rerun in TTY or set AIPM_MODERNIZED=1 for automation." >&2
+  echo "error: non-interactive modernization requires explicit confirmation." >&2
+  echo "hint: rerun with --yes or set AIPM_MODERNIZED=1 for automation." >&2
   exit 1
 fi
 

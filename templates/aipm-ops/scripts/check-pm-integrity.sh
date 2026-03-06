@@ -5,7 +5,7 @@ set -euo pipefail
 usage() {
   cat <<'USAGE'
 Usage:
-  ./scripts/check-pm-integrity.sh [--repo <owner/repo>] [--state <open|closed|all>] [--limit <n>] [--json] [--strict]
+  ./scripts/check-pm-integrity.sh [--repo <owner/repo>] [--state <open|closed|all>] [--limit <n>] [--json] [--strict] [--fix-active]
 
 Description:
   Audits issue label integrity for PM lifecycle governance.
@@ -53,6 +53,7 @@ state="open"
 limit="500"
 json=0
 strict=0
+fix_active=0
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -77,6 +78,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --strict)
       strict=1
+      shift
+      ;;
+    --fix-active)
+      fix_active=1
       shift
       ;;
     -h|--help)
@@ -109,6 +114,30 @@ require_cmd jq
 
 if [[ -z "$repo" ]]; then
   repo="$(gh repo view --json nameWithOwner --jq .nameWithOwner)"
+fi
+
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=scripts/pm-state.sh
+source "$script_dir/pm-state.sh"
+
+if [[ "$fix_active" -eq 1 ]]; then
+  active_issue="$(pm_read_active_field issue 2>/dev/null || true)"
+  if [[ -n "$active_issue" ]]; then
+    active_json="$(gh issue view "$active_issue" --repo "$repo" --json number,title,state,labels)"
+    active_title="$(jq -r '.title' <<<"$active_json")"
+    active_state="$(jq -r '.state | ascii_downcase' <<<"$active_json")"
+    active_status_count="$(jq '[.labels[].name | ascii_downcase | select(startswith("status:"))] | length' <<<"$active_json")"
+    active_type_count="$(jq '[.labels[].name | ascii_downcase | select(startswith("type:"))] | length' <<<"$active_json")"
+    if [[ "$active_type_count" -eq 0 ]]; then
+      pm_add_type_label_if_missing "$repo" "$active_issue" "$active_title"
+    fi
+    if [[ "$active_state" == "open" && "$active_status_count" -eq 0 ]]; then
+      pm_set_issue_status_label "$repo" "$active_issue" "status:in-progress"
+    fi
+    if [[ "$active_state" == "closed" && "$active_status_count" -eq 0 ]]; then
+      pm_set_issue_status_label "$repo" "$active_issue" "status:done"
+    fi
+  fi
 fi
 
 issues_json="$(gh issue list --repo "$repo" --state "$state" --limit "$limit" --json number,title,state,url,labels)"

@@ -4,4 +4,10 @@
 .AppleDouble
 Thumbs.db
 Desktop.ini
-
+__pycache__/
+*.pyc
+.aipm/state/
+.aipm/worktrees/
+.claude/settings.json
+.claude/worktrees/
+.codex/worktrees/
